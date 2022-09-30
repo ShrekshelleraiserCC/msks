@@ -1,0 +1,69 @@
+{
+  -- Default address to use for transactions and returns 
+  -- Needs to be the address of privateKey
+  -- AND the address of the name, if applicable
+  address = "",
+
+  -- Private key of your wallet refunds will be sent from
+  -- Should be for the address given
+  privateKey = "",
+
+  -- Your krist name (optional)
+  -- And each item will need a metaname set
+  -- Otherwise each item must be assigned an address
+  name = "",
+
+  -- List of inventories to pull shop items from
+  inventories = {},
+
+  -- Monitor peripheral name
+  monitor = "",
+
+  -- Turtle peripheral name on network
+  turtle = "",
+
+  -- The name of the shop to be displayed on the monitor
+  shopName = "",
+
+  -- Contact name
+  contactName = "",
+
+  kristEndpoint = "https://krist.dev",
+
+  -- Apply the given theme to term
+  applyThemeToTerm = true,
+
+  theme = {
+    -- Color of main background
+    background = 0x042069, -- color 2 (0 indexed)
+    -- Alternating colors for text listings on background
+    primaryText = 0x069420, -- color 1
+    secondaryText = 0x69b00b, -- color 0
+    -- Color of banner background
+    bannerColor = 0x6b00b9, -- color 3
+    -- Color of banner text
+    bannerText = 0,
+    -- Color to display when showing errors on background
+    errorColor = 0xb00b69, -- color 4
+  },
+
+  -- Alternative theme that won't hurt your eyes as much
+  -- theme = {
+  --   background = 0, -- black background
+  --   primaryText = 0xFFFFFF, -- white
+  --   secondaryText = 0xF0F0F0, -- grey
+  --   bannerColor = 0x000055, -- dark grey
+  --   bannerText = 0xFFFFFF, -- white banner text
+  --   errorColor = 0xFF0000,
+  -- },
+
+  -- Speaker to play sounds on
+  -- nil for no sounds
+  speaker = nil,
+
+  sounds = {
+    itemDispensed = "block.dispenser.dispense",
+    saleSuccess = "entity.villager.yes",
+    refundIssued = "entity.villager.no",
+  }
+}
