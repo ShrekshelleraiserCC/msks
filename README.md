@@ -6,7 +6,7 @@ This is a simple Krist shop that supports many different wallets and configurati
 
 Setup for the shop is split between two serialized table files
 
-### config.lua
+### config
 
 This file is where you'll configure the settings for the shop.
 
@@ -25,7 +25,7 @@ Optional settings
 * `name` - default name for listings to use, can be overridden
 * `speaker` - peripheral name for an attached speaker, used for sound effects
 
-### listings.lua
+### listings
 
 This file is where you'll configure the items you're selling in your shop
 
@@ -74,7 +74,7 @@ The shop will display the name of your shop and who operates the shop at the top
 Underneath this will be listings, alternating in color, each listing will follow this format:
 ```
 Count Name        Sendto         KST/Item
-x100  Cobblestone an@address.kst 0.02kst
+100   Cobblestone an@address.kst 0.02
 ```
 
 When you send krist to a given address, the shop will handle the transaction by:
@@ -91,3 +91,51 @@ This shop will error safely.
   * Shop Owner
   * Shop Name
   * Error
+
+# Krist Transaction Websocket Library
+
+This is a library to make transaction tracking easy!
+
+## Quickstart
+
+Require the library `local ktwsl = require("ktwsl")`
+
+Create a krist manager object by calling the function returned (passing in the desired endpoint and your privatekey), `local krist = ktwsl("https://krist.dev", privatekey)`
+
+Add any addresses you want to listen for transactions from via `krist.subscribeAddress("anAddressOrNameHere")`. This supports addresses AND names, so `aname@alt.kst` is as valid as `kziwwr5hm9`. You can subscribe or unsubscribe from addresses at any time, including while the krist manager is running, without any additional effort.
+
+Once you want your krist manager to start throwing events for transactions simply call `krist.start()`
+
+There are two events to listen for
+* `"krist_transaction", toAddress, fromAddress, value, transactionTable`
+  * This fires whenever a transaction to an address you've subscribed to occurs.
+  * Both given addresses (`toAddress` and `fromAddress`) will be names if applicable, otherwise just a base krist address.
+* `"krist_stop", errorReason`
+  * This fires whenever the websocket / handler gives any errors. Once this event fires the websocket is disconnected. You can either error, or handle it gracefully and restart the krist manager with `krist.start()`
+
+
+## Some notes
+
+* Only one krist listener can be active at a time, if you call `krist.start()` on a different krist object, the first one will be removed from `redrun`, and therefor stop listening to websocket messages.
+
+* When exiting your program try to clean up by calling `krist.stop()`, this will stop any redrun tasks executing and remove them from the courotine manager.
+
+## Example
+```lua
+local krist = require("ktwsl")("https://krist.dev", "aprivatekeylol")
+krist.subscribeAddress("iron@alt.kst")
+krist.start()
+
+while true do
+  local event, to, from, value, transaction = os.pullEventRaw()
+  if event == "terminate" then
+    krist.stop()
+    error("Terminated")
+  elseif event == "krist_stop" then
+    krist.stop()
+    error("Websocket died: "..to)
+  elseif event == "krist_transaction" then
+    print(value.."kst was sent to "..to.." from "..from)
+  end
+end
+```

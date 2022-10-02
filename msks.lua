@@ -63,6 +63,7 @@ end
 
 --- Validate and create lookup table
 local listingAddressLUT = {}
+local interestedAddresses = {}
 for k,v in ipairs(listings) do
   local address
   if v.address then
@@ -97,12 +98,14 @@ for k,v in ipairs(listings) do
     assert(v.metaname ~= "", "Item "..v.label.." has a name, but an empty metaname")
     v.name = nameToUse
     v.sendTo = v.metaname.."@"..v.name..".kst"
-    assert(not listingAddressLUT[address][v.metaname], "Duplicate metaname for item "..v.label.." "..nameToUse)
-    listingAddressLUT[address][v.metaname] = v
+    assert(not listingAddressLUT[v.sendTo], "Duplicate metaname for item "..v.label.." "..nameToUse)
+    listingAddressLUT[v.sendTo] = v
   else
     v.sendTo = address
-    listingAddressLUT[address].noName = v
+    listingAddressLUT[address] = v
   end
+
+  krist.subscribeAddress(v.sendTo)
 end
 
 monitor.bg = monitor.setBackgroundColor
@@ -146,7 +149,7 @@ end
 
 
 --- This function is only called if the purchase is to a valid listing
-local function handlePurchase(listing, event)
+local function handlePurchase(listing, from, event)
   local itemsToDispense = math.floor(event.value / listing.price)
   local itemsDispensed = invCache.pushItems(config.turtle, listing.id, itemsToDispense, nil, function()
     playSound(config.sounds.itemDispensed)
@@ -158,72 +161,59 @@ local function handlePurchase(listing, event)
 
   if refund > 0 then
     -- TODO process refund
-    local refundMsg = {
-      to = event.from,
-      type = "make_transaction",
-      privatekey = config.privateKey,
-      amount = refund
-    }
-    if event.metadata then
-      local meta = krist.parseMetadata(event.metadata)
-      if (meta["return"]) then
-        refundMsg.metadata = meta["return"]
-        refundMsg.to = meta["return"]
-      end
-    end
-    local refundStatus = krist.wsReq(refundMsg)
+    local meta = {}
+    local refundStatus, err = krist.makeTransaction(from, refund)
     playSound(config.sounds.refundIssued)
-    assert(refundStatus.ok, "Error refunding"..event.from..": "..(refundStatus["error"] or "?"))
+    assert(refundStatus, "Error refunding"..event.from..": "..(err or "?"))
   else
     playSound(config.sounds.saleSuccess)
   end
 end
 
-krist.setTransactionHandler(function(event)
-  if event.event == "transaction" then
-    event = event.transaction
-    if listingAddressLUT[event.to] then
-      -- this is an address we're interested in transactions to
-      if event.sent_name then
-        -- this is a transaction with a name involved
-        local listing = listingAddressLUT[event.to][event.sent_metaname]
-        if listing and listing.name == event.sent_name then
-          handlePurchase(listing, event)
-        end -- if this doesn't execute, then the purchase was to a name we don't care about
-        -- TODO log if this doesn't execute
-      else
-        -- this is a transaction without a name involved
-        local listing = listingAddressLUT[event.to].noName
-        if listing then
-          handlePurchase(listing, event)
-        end -- if this doesn't execute then we're not listening for transactions on this address
-        -- TODO log if this doesn't execute
+invCache.refreshStorage()
+drawMonitor()
+
+local function showErr(errorReason)
+  krist.stop()
+  monitor.bg(theme.bg)
+  monitor.fg(theme.err)
+  local errStartLine = 3
+  monitor.c(1,errStartLine+1)
+  monitor.write("WARNING")
+  monitor.c(1,errStartLine+2)
+  monitor.write("This shop has stopped listening for Krist events")
+  monitor.c(1,errStartLine+3)
+  monitor.write("Please report this to the shop owner/github")
+  monitor.c(1,errStartLine+4)
+  monitor.write("https://github.com/MasonGulu/msks")
+  monitor.c(1,errStartLine+5)
+  monitor.write("Supply this exit reason: ")
+  monitor.c(1,errStartLine+6)
+  monitor.write(errorReason)
+
+end
+
+krist.start()
+while true do
+  local event, to, from, value, transaction = os.pullEventRaw()
+  if event == "krist_transaction" then
+    local listing = listingAddressLUT[to]
+    if listing then
+      local stat, err = pcall(handlePurchase,listing, from, transaction)
+      if not stat then
+        showErr(err)
+        break
       end
     end
-  end
-end)
-
-invCache.refreshStorage()
-
-local exitReason = krist.start(function()
-  while true do
+  elseif event == "krist_stop" or event == "terminate" then
+    local exitReason = to
+    if event == "terminate" then
+      exitReason = "Terminated!"
+    end
+    showErr(exitReason)
+    break
+  elseif event == "rerender" then
     drawMonitor()
-    os.pullEvent("rerender")
   end
-end)
+end
 
-monitor.bg(theme.bg)
-monitor.fg(theme.err)
-local errStartLine = 3
-monitor.c(1,errStartLine+1)
-monitor.write("WARNING")
-monitor.c(1,errStartLine+2)
-monitor.write("This shop has stopped listening for Krist events")
-monitor.c(1,errStartLine+3)
-monitor.write("Please report this to the shop owner/github")
-monitor.c(1,errStartLine+4)
-monitor.write("https://github.com/MasonGulu/msks")
-monitor.c(1,errStartLine+5)
-monitor.write("Supply this exit reason: ")
-monitor.c(1,errStartLine+6)
-monitor.write(exitReason)
