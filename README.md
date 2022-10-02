@@ -2,6 +2,8 @@
 
 This is a simple Krist shop that supports many different wallets and configurations.
 
+To install you'll need `abstractInvLib.lua`, `ktwsl.lua`, `msks.lua`, and `redrun.lua`. You'll also need the configuration files as detailed below.
+
 ## Configuration
 
 Setup for the shop is split between two serialized table files
@@ -95,6 +97,8 @@ This shop will error safely.
 # Krist Transaction Websocket Library
 
 This is a library to make transaction tracking easy!
+
+To install this library you'll need `ktwsl.lua` and `redrun.lua`.
 
 ## Quickstart
 
