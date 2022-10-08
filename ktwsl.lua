@@ -62,7 +62,7 @@ return function(url, privateKey)
       event = event.transaction
       local metadata = parseMetadata(event.metadata)
       local returnAddress = metadata["return"] or event.from
-      if event.sent_name then
+      if event.sent_name and event.sent_metaname then
         -- this is a transaction with a name involved
         local sentAddress = event.sent_metaname.."@"..event.sent_name..".kst"
         local interested = targetAddresses[sentAddress]
