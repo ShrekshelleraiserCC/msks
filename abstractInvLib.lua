@@ -81,5 +81,13 @@ return function(inventories)
     return totalCount
   end
 
+  function api.listNames()
+    local t = {}
+    for k,v in pairs(storageCache) do
+      t[#t+1] = k
+    end
+    return t
+  end
+
   return api
 end

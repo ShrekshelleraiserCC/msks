@@ -25,6 +25,8 @@ local function parseMetadata(s)
   if not s then
     return {}
   end
+  -- This is not valid.
+  local hasName = not not s:gmatch("%a+%@?%a-%.kst")
   local t={}
   for str in string.gmatch(s, "([^;]+)") do
     table.insert(t, str)
@@ -32,13 +34,19 @@ local function parseMetadata(s)
   local ret = {}
   for k,v in pairs(t) do
     local kvpair = {}
+    -- THIS IS A NEW CHANGE!
+    -- This parses the name of commonmeta metadata
+    if k == 1 and hasName then
+      -- first element, and it's the name
+      ret.recipient = v
+    end
     for str in string.gmatch(v, "([^=]+)") do
       table.insert(kvpair, str)
     end
     if #kvpair > 1 then
       -- key value pair
       ret[kvpair[1]] = kvpair[2]
-    else
+    elseif not hasName then
       ret[#ret+1] = kvpair[1]
     end
   end
@@ -62,9 +70,9 @@ return function(url, privateKey)
       event = event.transaction
       local metadata = parseMetadata(event.metadata)
       local returnAddress = metadata["return"] or event.from
-      if event.sent_name and event.sent_metaname then
+      if metadata.recipient then
         -- this is a transaction with a name involved
-        local sentAddress = event.sent_metaname.."@"..event.sent_name..".kst"
+        local sentAddress = metadata.recipient
         local interested = targetAddresses[sentAddress]
         -- this is an address we're interested in transactions to
         if interested then
@@ -111,9 +119,44 @@ return function(url, privateKey)
   end
 
   local function websocketHandler()
+    --[[
+      Shield by AlexDevs
+      Protect a function from termination by wrapping it.
+      Usage: shield(function[, ...args])
+      Example: local input = shield(read, "*")
+      (c) 2022 AlexDevs
+      The MIT License
+      Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the “Software”), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+      The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+      THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+    ]]
+    
+    local expect = require("cc.expect").expect
+    
+    local function shield(func, ...)
+        expect(1, func, "function")
+    
+        local thread = coroutine.create(func)
+        
+        local event, filter, pars = table.pack(...)
+        while coroutine.status(thread) ~= "dead" do
+            if event[1] ~= "terminate" and filter == nil or filter == event[1] then
+                pars = table.pack(coroutine.resume(thread, table.unpack(event, 1, event.n)))
+                if pars[1] then
+                    filter = pars[2]
+                else
+                    error(pars[2], 0)
+                end
+            end
+            event = table.pack(coroutine.yield())
+        end
+    
+        return table.unpack(pars, 2)
+    end
+
     api.wsReq({type="subscribe",event="transactions"})
     while true do
-      local response = assert(ws.receive(), "Websocket dropped")
+      local response = assert(shield(ws.receive), "Websocket dropped")
       response = assert(textutils.unserialiseJSON(response), "Invalid JSON")
       if response.type == "event" then
         eventHandler(response)
@@ -136,8 +179,10 @@ return function(url, privateKey)
 
   function api.stop()
     stopRedrun()
-    ws.close()
-    ws = nil
+    if ws then
+      ws.close()
+      ws = nil
+    end
     os.queueEvent("krist_stop", "Stop called")
   end
 
