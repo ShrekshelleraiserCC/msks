@@ -6,5 +6,6 @@
     address = nil, -- address for overriding defaultAddress
     name = nil, -- space for overriding name for this item
     metaname = "iron", -- metaname like "iron" of iron@aname.kst 
+    nbt = nil, -- space for an nbt hash for an item
   }
 }

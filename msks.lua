@@ -154,7 +154,7 @@ local function handlePurchase(listing, from, event)
   local itemsDispensed = invCache.pushItems(config.turtle, listing.id, itemsToDispense, nil, function()
     playSound(config.sounds.itemDispensed)
     turtle.drop()
-  end)
+  end, listing.nbt, {optimal=false})
   os.queueEvent("rerender")
 
   local refund = math.floor(event.value - (itemsDispensed * listing.price))

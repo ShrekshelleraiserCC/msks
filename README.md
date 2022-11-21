@@ -2,7 +2,7 @@
 
 This is a simple Krist shop that supports many different wallets and configurations.
 
-To install you'll need `abstractInvLib.lua`, `ktwsl.lua`, `msks.lua`, and `redrun.lua`. You'll also need the configuration files as detailed below.
+To install run `wget run https://raw.githubusercontent.com/MasonGulu/msks/main/install.lua` and edit the configuration files, then set this as your startup program.
 
 ## Configuration
 
