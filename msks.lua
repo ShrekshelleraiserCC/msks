@@ -151,10 +151,13 @@ end
 --- This function is only called if the purchase is to a valid listing
 local function handlePurchase(listing, from, event)
   local itemsToDispense = math.floor(event.value / listing.price)
-  local itemsDispensed = invCache.pushItems(config.turtle, listing.id, itemsToDispense, nil, function()
-    playSound(config.sounds.itemDispensed)
-    turtle.drop()
-  end, listing.nbt, {optimal=false})
+  local itemsDispensed = invCache.pushItems(config.turtle, listing.id, itemsToDispense, nil, listing.nbt, {
+    optimal=false,
+    itemMovedCallback = function()
+      playSound(config.sounds.itemDispensed)
+      turtle.drop()
+    end,
+  })
   os.queueEvent("rerender")
 
   local refund = math.floor(event.value - (itemsDispensed * listing.price))
