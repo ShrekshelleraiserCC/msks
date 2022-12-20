@@ -153,8 +153,7 @@ return function(url, privateKey)
             end
             event = table.pack(coroutine.yield())
         end
-    
-        return table.unpack(pars, 2)
+        return table.unpack(pars --[[@as table]], 2)
     end
 
     api.wsReq({type="subscribe",event="transactions"})
