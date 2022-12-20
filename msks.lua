@@ -54,7 +54,7 @@ if config.applyThemeToTerm then
 end
 setPalette(monitor)
 
-local speaker = peripheral.wrap(config.speaker)
+local speaker = config.speaker and peripheral.wrap(config.speaker)
 local function playSound(sound)
   if speaker then
     speaker.playSound(sound)
