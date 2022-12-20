@@ -143,3 +143,11 @@ while true do
   end
 end
 ```
+
+## Advanced Use
+
+You can choose to replace the event handler placed in redrun. 
+
+The default event handler takes a websocket event, checks if it's a transaction, and then queues the events documented above for the end user's use.
+
+To replace the event handler use `krist.setEventHandler`
