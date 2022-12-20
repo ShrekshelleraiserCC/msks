@@ -21,6 +21,9 @@
 
 local redrun = require("redrun")
 
+---Parse CommonMeta data
+---@param s string
+---@return table metadata
 local function parseMetadata(s)
   if not s then
     return {}
@@ -130,9 +133,9 @@ return function(url, privateKey)
       The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
       THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
     ]]
-    
+
     local expect = require("cc.expect").expect
-    
+
     local function shield(func, ...)
         expect(1, func, "function")
     
@@ -177,6 +180,7 @@ return function(url, privateKey)
     end
   end
 
+  ---Stop the Krist transaction websocket
   function api.stop()
     stopRedrun()
     if ws then
@@ -200,12 +204,15 @@ return function(url, privateKey)
     redrun.start(asyncTask, "krist")
   end
 
+  ---Start the Krist transaction websocket
   function api.start()
     assert(eventHandler, "No event handler provided")
     connectToWebsocket(getWebsocketUrl())
     runAsync()
   end
 
+  ---Replace the event handler placed in redrun. Advanced users.
+  ---@param handler fun(wsEvent:table)
   function api.setEventHandler(handler)
     eventHandler = handler
   end
@@ -220,6 +227,11 @@ return function(url, privateKey)
     targetAddresses[a] = nil
   end
 
+  ---Send krist to an address
+  ---@param to string Any valid address, or name and metaname.
+  ---@param amount integer
+  ---@return boolean ok
+  ---@return string|nil error
   function api.makeTransaction(to, amount)
     local msg = {
       to = to,
@@ -231,8 +243,9 @@ return function(url, privateKey)
     return status.ok, status["error"]
   end
 
+  ---Websocket
   api.ws = ws
-  api.parseMetadata = function(...) return parseMetadata(...) end
+  api.parseMetadata = parseMetadata
 
   return api
 
