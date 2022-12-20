@@ -9,7 +9,7 @@
 -- THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 
-local configFile = assert(fs.open("config.lua", "r"), "Unable to open config file!")
+local configFile = assert(fs.open("config", "r"), "Unable to open config file!")
 local config = assert(textutils.unserialise(configFile.readAll()), "Unable to unserialize config")
 configFile.close()
 
@@ -23,7 +23,7 @@ assert(config.turtle and config.turtle ~= "", "Config provides no turtle address
 
 local krist = require("ktwsl")(config.kristEndpoint, config.privateKey)
 
-local listingFile = assert(fs.open("listings.lua", "r"), "Unable to open listings file")
+local listingFile = assert(fs.open("listings", "r"), "Unable to open listings file")
 local listings = assert(textutils.unserialise(listingFile.readAll()), "Unable to unserialize listings")
 listingFile.close()
 
