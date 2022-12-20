@@ -24,7 +24,7 @@ Required settings
 * `sounds` - a table of sound effects
 
 Optional settings
-* `name` - default name for listings to use, can be overridden
+* `name` - default name for listings to use, can be overridden i.e. `alt.kst`
 * `speaker` - peripheral name for an attached speaker, used for sound effects
 
 ### listings

@@ -97,7 +97,10 @@ for k,v in ipairs(listings) do
     assert(v.metaname, "Item "..v.label.." has a name, but no metaname")
     assert(v.metaname ~= "", "Item "..v.label.." has a name, but an empty metaname")
     v.name = nameToUse
-    v.sendTo = v.metaname.."@"..v.name..".kst"
+    v.sendTo = v.metaname.."@"..v.name
+    if v.name:sub(-4) ~= ".kst" then
+      print(("WARNING: the name being used for %s is %s, this might be missing .kst"):format(v.id, v.name))
+    end
     assert(not listingAddressLUT[v.sendTo], "Duplicate metaname for item "..v.label.." "..nameToUse)
     listingAddressLUT[v.sendTo] = v
   else
@@ -107,6 +110,10 @@ for k,v in ipairs(listings) do
 
   krist.subscribeAddress(v.sendTo)
 end
+
+local f = fs.open("test.out","w")
+f.write(textutils.serialise(listings))
+f.close()
 
 monitor.bg = monitor.setBackgroundColor
 monitor.fg = monitor.setTextColor
@@ -163,8 +170,6 @@ local function handlePurchase(listing, from, event)
   local refund = math.floor(event.value - (itemsDispensed * listing.price))
 
   if refund > 0 then
-    -- TODO process refund
-    local meta = {}
     local refundStatus, err = krist.makeTransaction(from, refund)
     playSound(config.sounds.refundIssued)
     assert(refundStatus, "Error refunding"..event.from..": "..(err or "?"))
