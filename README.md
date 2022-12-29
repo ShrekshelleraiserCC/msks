@@ -98,7 +98,7 @@ This shop will error safely.
 
 This is a library to make transaction tracking easy!
 
-To install this library you'll need `ktwsl.lua` and `redrun.lua`.
+To install this library you'll need `ktwsl.lua`.
 
 ## Quickstart
 
@@ -108,7 +108,7 @@ Create a krist manager object by calling the function returned (passing in the d
 
 Add any addresses you want to listen for transactions from via `krist.subscribeAddress("anAddressOrNameHere")`. This supports addresses AND names, so `aname@alt.kst` is as valid as `kziwwr5hm9`. You can subscribe or unsubscribe from addresses at any time, including while the krist manager is running, without any additional effort.
 
-Once you want your krist manager to start throwing events for transactions simply call `krist.start()`
+Once you want your krist manager to start throwing events for transactions simply call `krist.start()` in parallel with other code you'd like to run.
 
 There are two events to listen for
 * `"krist_transaction", toAddress, fromAddress, value, transactionTable`
@@ -120,33 +120,36 @@ There are two events to listen for
 
 ## Some notes
 
-* Only one krist listener can be active at a time, if you call `krist.start()` on a different krist object, the first one will be removed from `redrun`, and therefor stop listening to websocket messages.
-
-* When exiting your program try to clean up by calling `krist.stop()`, this will stop any redrun tasks executing and remove them from the courotine manager.
+* When exiting your program try to clean up by calling `krist.stop()`, this will close the websocket.
 
 ## Example
 ```lua
 local krist = require("ktwsl")("https://krist.dev", "aprivatekeylol")
 krist.subscribeAddress("iron@alt.kst")
-krist.start()
 
-while true do
-  local event, to, from, value, transaction = os.pullEventRaw()
-  if event == "terminate" then
-    krist.stop()
-    error("Terminated")
-  elseif event == "krist_stop" then
-    krist.stop()
-    error("Websocket died: "..to)
-  elseif event == "krist_transaction" then
-    print(value.."kst was sent to "..to.." from "..from)
+local function transactionHandler()
+  while true do
+    local event, to, from, value, transaction = os.pullEventRaw()
+    if event == "terminate" then
+      krist.stop()
+      error("Terminated")
+    elseif event == "krist_stop" then
+      krist.stop()
+      error("Websocket died: "..to)
+    elseif event == "krist_transaction" then
+      print(value.."kst was sent to "..to.." from "..from)
+    end
   end
 end
+
+parallel.waitForAny(krist.start, transactionHandler)
+
+krist.stop()
 ```
 
 ## Advanced Use
 
-You can choose to replace the event handler placed in redrun. 
+You can choose to replace the event handler called for websocket events.
 
 The default event handler takes a websocket event, checks if it's a transaction, and then queues the events documented above for the end user's use.
 

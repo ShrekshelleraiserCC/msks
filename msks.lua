@@ -201,27 +201,30 @@ local function showErr(errorReason)
 
 end
 
-krist.start()
-while true do
-  local event, to, from, value, transaction = os.pullEventRaw()
-  if event == "krist_transaction" then
-    local listing = listingAddressLUT[to]
-    if listing then
-      local stat, err = pcall(handlePurchase,listing, from, transaction)
-      if not stat then
-        showErr(err)
-        break
+parallel.waitForAny(krist.start,
+function ()
+  while true do
+    local event, to, from, value, transaction = os.pullEventRaw()
+    if event == "krist_transaction" then
+      local listing = listingAddressLUT[to]
+      if listing then
+        local stat, err = pcall(handlePurchase,listing, from, transaction)
+        if not stat then
+          showErr(err)
+          break
+        end
       end
+    elseif event == "krist_stop" or event == "terminate" then
+      local exitReason = to
+      if event == "terminate" then
+        exitReason = "Terminated!"
+      end
+      showErr(exitReason)
+      break
+    elseif event == "rerender" then
+      drawMonitor()
     end
-  elseif event == "krist_stop" or event == "terminate" then
-    local exitReason = to
-    if event == "terminate" then
-      exitReason = "Terminated!"
-    end
-    showErr(exitReason)
-    break
-  elseif event == "rerender" then
-    drawMonitor()
   end
-end
+end)
 
+krist.stop()

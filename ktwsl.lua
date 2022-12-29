@@ -18,8 +18,8 @@
 -- The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
 -- THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-
-local redrun = require("redrun")
+local domainMatch = "^[%a%d%-%_]+@?[%a%d]-%.kst$"
+local commonMetaMatch = "^(.+)=(.+)$"
 
 ---Parse CommonMeta data
 ---@param s string
@@ -28,32 +28,20 @@ local function parseMetadata(s)
   if not s then
     return {}
   end
-  -- This is not valid.
-  local hasName = not not s:gmatch("%a+%@?%a-%.kst")
   local t={}
-  for str in string.gmatch(s, "([^;]+)") do
-    table.insert(t, str)
-  end
-  local ret = {}
-  for k,v in pairs(t) do
-    local kvpair = {}
-    -- THIS IS A NEW CHANGE!
-    -- This parses the name of commonmeta metadata
-    if k == 1 and hasName then
-      -- first element, and it's the name
-      ret.recipient = v
-    end
-    for str in string.gmatch(v, "([^=]+)") do
-      table.insert(kvpair, str)
-    end
-    if #kvpair > 1 then
-      -- key value pair
-      ret[kvpair[1]] = kvpair[2]
-    elseif not hasName then
-      ret[#ret+1] = kvpair[1]
+  for str in string.gmatch(s, "[^;]+") do
+    if str:match(domainMatch) then
+      t.recipient = str:match(domainMatch)
+
+    elseif str:match(commonMetaMatch) then
+      local p1, p2 = str:match(commonMetaMatch)
+      t[p1] = p2
+
+    else
+      table.insert(t, str)
     end
   end
-  return ret
+  return t
 end
 
 return function(url, privateKey)
@@ -138,9 +126,7 @@ return function(url, privateKey)
 
     local function shield(func, ...)
         expect(1, func, "function")
-    
         local thread = coroutine.create(func)
-        
         local event, filter, pars = table.pack(...)
         while coroutine.status(thread) ~= "dead" do
             if event[1] ~= "terminate" and filter == nil or filter == event[1] then
@@ -172,16 +158,8 @@ return function(url, privateKey)
     print("Connected to websocket!")
   end
 
-  local function stopRedrun()
-    local rid = redrun.getid("krist")
-    if rid then
-      redrun.terminate(rid)
-    end
-  end
-
   ---Stop the Krist transaction websocket
   function api.stop()
-    stopRedrun()
     if ws then
       ws.close()
       ws = nil
@@ -189,25 +167,19 @@ return function(url, privateKey)
     os.queueEvent("krist_stop", "Stop called")
   end
 
-  local function asyncTask()
+  local function start()
     local stat, err = pcall(websocketHandler)
     print("Websocket handler errored!")
     os.queueEvent("krist_stop", err)
-    stopRedrun() -- ensure this removes itself from the event handler
     ws.close()
     ws = nil
   end
 
-  local function runAsync()
-    stopRedrun()
-    redrun.start(asyncTask, "krist")
-  end
-
-  ---Start the Krist transaction websocket
+  ---Start the Krist transaction websocket, call in parallel with your code
   function api.start()
     assert(eventHandler, "No event handler provided")
     connectToWebsocket(getWebsocketUrl())
-    runAsync()
+    start()
   end
 
   ---Replace the event handler placed in redrun. Advanced users.
