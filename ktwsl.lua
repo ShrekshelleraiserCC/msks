@@ -51,6 +51,7 @@ return function(url, privateKey)
   local api = {}
 
   local ws
+  local wsUrl
   local id = 0
 
   -- This function can be overwritten
@@ -86,10 +87,15 @@ return function(url, privateKey)
     local msg = textutils.serialiseJSON(T)
     ws.send(msg)
     while true do
-      local message = assert(ws.receive(), "Websocket dropped")
-      local messageT = assert(textutils.unserialiseJSON(message), "Malform message")
-      if messageT.id == T.id then
-        return messageT
+      local e = {os.pullEventRaw()}
+      if e[1] == "websocket_message" and e[2] == wsUrl then
+        local message = e[3]
+        local messageT = assert(textutils.unserialiseJSON(message), "Malformed message")
+        if messageT.id == T.id then
+          return messageT
+        end
+      elseif e[1] == "websocket_closed" and e[2] == wsUrl then
+        error("Websocket closed")
       end
     end
   end
@@ -110,51 +116,33 @@ return function(url, privateKey)
   end
 
   local function websocketHandler()
-    --[[
-      Shield by AlexDevs
-      Protect a function from termination by wrapping it.
-      Usage: shield(function[, ...args])
-      Example: local input = shield(read, "*")
-      (c) 2022 AlexDevs
-      The MIT License
-      Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the “Software”), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
-      The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
-      THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-    ]]
-
-    local expect = require("cc.expect").expect
-
-    local function shield(func, ...)
-        expect(1, func, "function")
-        local thread = coroutine.create(func)
-        local event, filter, pars = table.pack(...)
-        while coroutine.status(thread) ~= "dead" do
-            if event[1] ~= "terminate" and filter == nil or filter == event[1] then
-                pars = table.pack(coroutine.resume(thread, table.unpack(event, 1, event.n)))
-                if pars[1] then
-                    filter = pars[2]
-                else
-                    error(pars[2], 0)
-                end
-            end
-            event = table.pack(coroutine.yield())
-        end
-        return table.unpack(pars --[[@as table]], 2)
-    end
-
     api.wsReq({type="subscribe",event="transactions"})
     while true do
-      local response = assert(shield(ws.receive), "Websocket dropped")
-      response = assert(textutils.unserialiseJSON(response), "Invalid JSON")
-      if response.type == "event" then
-        eventHandler(response)
+      local e = {os.pullEventRaw()}
+      if e[1] == "websocket_message" and e[2] == wsUrl then
+        local response = e[3]
+        response = assert(textutils.unserialiseJSON(response), "Invalid JSON")
+        if response.type == "event" then
+          eventHandler(response)
+        end
+      elseif e[1] == "websocket_closed" and e[2] == wsUrl then
+        error("Websocket closed")
       end
     end
   end
 
-  local function connectToWebsocket(wsUrl)
+  local function connectToWebsocket()
     print("Attempting to connect to websocket...")
-    ws = http.websocket(wsUrl)
+    ws = http.websocketAsync(wsUrl)
+    while true do
+      local e = {os.pullEventRaw()}
+      if e[1] == "websocket_success" and e[2] == wsUrl then
+        ws = e[3]
+        break
+      elseif e[1] == "websocket_failure" and e[2] == wsUrl then
+        error(e[3])
+      end
+    end
     print("Connected to websocket!")
   end
 
@@ -178,7 +166,8 @@ return function(url, privateKey)
   ---Start the Krist transaction websocket, call in parallel with your code
   function api.start()
     assert(eventHandler, "No event handler provided")
-    connectToWebsocket(getWebsocketUrl())
+    wsUrl = getWebsocketUrl()
+    connectToWebsocket()
     start()
   end
 
