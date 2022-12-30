@@ -143,7 +143,9 @@ local function drawMonitor()
   monitor.fg(theme.text)
   -- TODO get the rest of this setup
   for k, v in pairs(listings) do
-    if (k % 2) == 1 then
+    if invCache.getCount(v.id) == 0 then
+      monitor.fg(theme.err)
+    elseif (k % 2) == 1 then
       monitor.fg(theme.atext)
     else
       monitor.fg(theme.text)
