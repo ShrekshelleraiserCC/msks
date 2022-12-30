@@ -225,6 +225,9 @@ function ()
       break
     elseif event == "rerender" then
       drawMonitor()
+    elseif event == "redstone" and config.redstoneTriggersStockCalculations then
+      invCache.refreshStorage(true)
+      drawMonitor()
     end
   end
 end)

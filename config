@@ -28,6 +28,9 @@
   -- Contact name
   contactName = "",
 
+  -- Update Listings on Redstone (restock button)
+  redstoneTriggersStockCalculations = false,
+
   kristEndpoint = "https://krist.dev",
 
   -- Apply the given theme to term
