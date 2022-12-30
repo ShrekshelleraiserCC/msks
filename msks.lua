@@ -120,7 +120,7 @@ monitor.fg = monitor.setTextColor
 monitor.c = monitor.setCursorPos
 
 local function drawMonitor()
-  monitor.setTextScale(0.5)
+  monitor.setTextScale(config.theme.textScale)
   monitor.bg(theme.bg)
   monitor.clear()
   -- top banner

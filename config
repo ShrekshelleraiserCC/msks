@@ -45,6 +45,8 @@
     bannerText = 0,
     -- Color to display when showing errors on background
     errorColor = 0xb00b69, -- color 4
+    -- The scale of the connected monitor
+    textScale = 0.5
   },
 
   -- Alternative theme that won't hurt your eyes as much
