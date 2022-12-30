@@ -143,7 +143,8 @@ local function drawMonitor()
   monitor.fg(theme.text)
   -- TODO get the rest of this setup
   for k, v in pairs(listings) do
-    if invCache.getCount(v.id) == 0 then
+    local count = invCache.getCount(v.id,v.nbt)
+    if count == 0 then
       monitor.fg(theme.err)
     elseif (k % 2) == 1 then
       monitor.fg(theme.atext)
@@ -151,7 +152,7 @@ local function drawMonitor()
       monitor.fg(theme.text)
     end
     monitor.setCursorPos(1, k + 3)
-    monitor.write(string.format(formatStr, invCache.getCount(v.id), v.label, v.sendTo, v.price))
+    monitor.write(string.format(formatStr, count, v.label, v.sendTo, v.price))
   end
 end
 
