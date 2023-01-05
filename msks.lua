@@ -208,7 +208,7 @@ local ok, err = pcall(parallel.waitForAny,
 krist.start,
 function ()
   while true do
-    local event, to, from, value, transaction = os.pullEventRaw()
+    local event, to, from, value, transaction = os.pullEvent()
     if event == "krist_transaction" then
       local listing = listingAddressLUT[to]
       if listing then
@@ -218,13 +218,8 @@ function ()
           break
         end
       end
-    elseif event == "krist_stop" or event == "terminate" then
-      local exitReason = to
-      if event == "terminate" then
-        exitReason = "Terminated!"
-      end
-      showErr(exitReason)
-      break
+    elseif event == "krist_stop" then
+      error(to)
     elseif event == "rerender" then
       drawMonitor()
     elseif event == "redstone" and config.redstoneTriggersStockCalculations then
