@@ -204,7 +204,8 @@ local function showErr(errorReason)
 
 end
 
-parallel.waitForAny(krist.start,
+local ok, err = pcall(parallel.waitForAny,
+krist.start,
 function ()
   while true do
     local event, to, from, value, transaction = os.pullEventRaw()
@@ -232,5 +233,7 @@ function ()
     end
   end
 end)
+
+showErr(err)
 
 krist.stop()

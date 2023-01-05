@@ -190,14 +190,16 @@ return function(url, privateKey)
   ---Send krist to an address
   ---@param to string Any valid address, or name and metaname.
   ---@param amount integer
+  ---@param meta string|nil
   ---@return boolean ok
   ---@return string|nil error
-  function api.makeTransaction(to, amount)
+  function api.makeTransaction(to, amount, meta)
     local msg = {
       to = to,
       type = "make_transaction",
       privatekey = privateKey,
-      amount = amount
+      amount = amount,
+      metadata = meta
     }
     local status = api.wsReq(msg)
     return status.ok, status["error"]
